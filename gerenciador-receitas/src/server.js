@@ -7,12 +7,19 @@ app.use(express.json());
 
 const receitasRoutes = require('./routes/receitasRoutes');
 
+const categoriasRoutes = require('./routes/categoriasRoutes');
+const buscaRoutes = require('./routes/buscaRoutes');
+
 app.get('/', (req, res) => {
     res.json({
         mensagem: 'API de Receitas Culinárias funcionando!'
     });
 });
 
+app.use('/categorias', categoriasRoutes);
+
+// buscaRoutes TEM que vir ANTES de receitasRoutes
+app.use('/receitas', buscaRoutes);
 app.use('/receitas', receitasRoutes);
 
 // Testar conexão com o PostgreSQL
