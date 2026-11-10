@@ -1,0 +1,138 @@
+{
+  "info": {
+    "name": "API Receitas - Pessoa 2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" }
+  ],
+  "item": [
+    {
+      "name": "Listar categorias",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/categorias",
+          "host": ["{{baseUrl}}"],
+          "path": ["categorias"]
+        }
+      }
+    },
+    {
+      "name": "Buscar por nome",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/receitas/buscar?nome=bolo",
+          "host": ["{{baseUrl}}"],
+          "path": ["receitas", "buscar"],
+          "query": [{ "key": "nome", "value": "bolo" }]
+        }
+      }
+    },
+    {
+      "name": "Buscar por nome (invalido - 400)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/receitas/buscar?nome=b",
+          "host": ["{{baseUrl}}"],
+          "path": ["receitas", "buscar"],
+          "query": [{ "key": "nome", "value": "b" }]
+        }
+      }
+    },
+    {
+      "name": "Filtrar por categoria (nome)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/receitas/filtrar?categoria=Sobremesa",
+          "host": ["{{baseUrl}}"],
+          "path": ["receitas", "filtrar"],
+          "query": [{ "key": "categoria", "value": "Sobremesa" }]
+        }
+      }
+    },
+    {
+      "name": "Filtrar por categoria (id)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/receitas/filtrar?categoria=2",
+          "host": ["{{baseUrl}}"],
+          "path": ["receitas", "filtrar"],
+          "query": [{ "key": "categoria", "value": "2" }]
+        }
+      }
+    },
+    {
+      "name": "Filtrar por ingredientes (todos)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/receitas/filtrar?ingredientes=ovo,farinha",
+          "host": ["{{baseUrl}}"],
+          "path": ["receitas", "filtrar"],
+          "query": [{ "key": "ingredientes", "value": "ovo,farinha" }]
+        }
+      }
+    },
+    {
+      "name": "Filtrar por ingredientes (qualquer)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/receitas/filtrar?ingredientes=cenoura,frango&modo=qualquer",
+          "host": ["{{baseUrl}}"],
+          "path": ["receitas", "filtrar"],
+          "query": [
+            { "key": "ingredientes", "value": "cenoura,frango" },
+            { "key": "modo", "value": "qualquer" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Filtrar categoria + ingrediente",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/receitas/filtrar?categoria=Almoço&ingredientes=ovo",
+          "host": ["{{baseUrl}}"],
+          "path": ["receitas", "filtrar"],
+          "query": [
+            { "key": "categoria", "value": "Almoço" },
+            { "key": "ingredientes", "value": "ovo" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Filtrar sem filtros (400)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/receitas/filtrar",
+          "host": ["{{baseUrl}}"],
+          "path": ["receitas", "filtrar"]
+        }
+      }
+    },
+    {
+      "name": "Filtrar modo invalido (400)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/receitas/filtrar?categoria=1&modo=xyz",
+          "host": ["{{baseUrl}}"],
+          "path": ["receitas", "filtrar"],
+          "query": [
+            { "key": "categoria", "value": "1" },
+            { "key": "modo", "value": "xyz" }
+          ]
+        }
+      }
+    }
+  ]
+}
