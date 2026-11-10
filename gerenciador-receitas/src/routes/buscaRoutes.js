@@ -23,7 +23,8 @@ function ehTexto(valor) {
 const SELECT_RECEITAS = `
     SELECT r.*, c.nome AS categoria_nome
     FROM receitas r
-    LEFT JOIN categorias c ON c.id = r.categoria_id
+    LEFT JOIN categorias c
+    ON LOWER(c.nome) = LOWER(r.categoria)
 `;
 
 // ---------- GET /receitas/buscar?nome=bolo ----------
@@ -114,7 +115,7 @@ router.get('/filtrar', async (req, res) => {
                     return res.status(400).json({ mensagem: 'ID de categoria inválido!' });
                 }
                 valores.push(id);
-                condicoes.push(`r.categoria_id = $${valores.length}`);
+                condicoes.push(`c.id = $${valores.length}`);
             } else {
                 if (cat.length > 50) {
                     return res.status(400).json({
