@@ -4,6 +4,45 @@ const router = express.Router();
 
 const pool = require('../config/database');
 
+// Mantém o JSONB de receitas e as tabelas relacionais sincronizados.
+// O texto completo é preservado (ex.: "2 ovos"), permitindo que a busca
+// por "ovo" continue funcionando com ILIKE.
+async function sincronizarIngredientes(client, receitaId, ingredientes) {
+    const vistos = new Set();
+
+    for (const ingrediente of ingredientes) {
+        const nome = ingrediente.trim();
+        const chave = nome.toLocaleLowerCase('pt-BR');
+
+        if (vistos.has(chave)) continue;
+        vistos.add(chave);
+
+        let ingredienteResult = await client.query(
+            `SELECT id
+             FROM ingredientes
+             WHERE LOWER(nome) = LOWER($1)
+             LIMIT 1`,
+            [nome]
+        );
+
+        if (ingredienteResult.rows.length === 0) {
+            ingredienteResult = await client.query(
+                `INSERT INTO ingredientes (nome)
+                 VALUES ($1)
+                 RETURNING id`,
+                [nome]
+            );
+        }
+
+        await client.query(
+            `INSERT INTO receita_ingredientes (receita_id, ingrediente_id)
+             VALUES ($1, $2)
+             ON CONFLICT (receita_id, ingrediente_id) DO NOTHING`,
+            [receitaId, ingredienteResult.rows[0].id]
+        );
+    }
+}
+
 // Validar os dados da receita
 function validarReceita(dados) {
     const {
@@ -24,6 +63,8 @@ function validarReceita(dados) {
         Number(porcoes) <= 0 ||
         !Array.isArray(ingredientes) ||
         ingredientes.length === 0 ||
+        ingredientes.length > 100 ||
+        ingredientes.some(i => typeof i !== 'string' || i.length > 100) ||
         ingredientes.some(i => typeof i !== 'string' || !i.trim()) ||
         typeof modoPreparo !== 'string' || !modoPreparo.trim()
     ) {
@@ -84,6 +125,8 @@ router.get('/:id', async (req, res) => {
 
 // POST - Cadastrar nova receita
 router.post('/', async (req, res) => {
+    const client = await pool.connect();
+
     try {
         const {
             nome,
@@ -100,7 +143,9 @@ router.post('/', async (req, res) => {
             });
         }
 
-        const resultado = await pool.query(
+        await client.query('BEGIN');
+
+        const resultado = await client.query(
             `INSERT INTO receitas
             (nome, categoria, tempo_preparo, porcoes, ingredientes, modo_preparo)
             VALUES ($1, $2, $3, $4, $5, $6)
@@ -115,21 +160,29 @@ router.post('/', async (req, res) => {
             ]
         );
 
+        await sincronizarIngredientes(client, resultado.rows[0].id, ingredientes);
+        await client.query('COMMIT');
+
         res.status(201).json({
             mensagem: 'Receita cadastrada com sucesso!',
             receita: resultado.rows[0]
         });
 
     } catch (erro) {
+        await client.query('ROLLBACK').catch(() => {});
         console.error(erro);
         res.status(500).json({
             mensagem: 'Erro ao cadastrar receita!'
         });
+    } finally {
+        client.release();
     }
 });
 
 // PUT - Editar receita
 router.put('/:id', async (req, res) => {
+    const client = await pool.connect();
+
     try {
         const id = Number(req.params.id);
 
@@ -154,7 +207,9 @@ router.put('/:id', async (req, res) => {
             modoPreparo
         } = req.body;
 
-        const resultado = await pool.query(
+        await client.query('BEGIN');
+
+        const resultado = await client.query(
             `UPDATE receitas
             SET nome = $1,
                 categoria = $2,
@@ -176,10 +231,18 @@ router.put('/:id', async (req, res) => {
         );
 
         if (resultado.rows.length === 0) {
+            await client.query('ROLLBACK');
             return res.status(404).json({
                 mensagem: 'Receita não encontrada!'
             });
         }
+
+        await client.query(
+            'DELETE FROM receita_ingredientes WHERE receita_id = $1',
+            [id]
+        );
+        await sincronizarIngredientes(client, id, ingredientes);
+        await client.query('COMMIT');
 
         res.json({
             mensagem: 'Receita atualizada com sucesso!',
@@ -187,10 +250,13 @@ router.put('/:id', async (req, res) => {
         });
 
     } catch (erro) {
+        await client.query('ROLLBACK').catch(() => {});
         console.error(erro);
         res.status(500).json({
             mensagem: 'Erro ao atualizar receita!'
         });
+    } finally {
+        client.release();
     }
 });
 
